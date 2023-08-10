@@ -56,7 +56,6 @@ CREATE TABLE venta_producto(
 CREATE TABLE proveedor(
 	id_proveedor INT PRIMARY KEY,
     nombre_proveedor VARCHAR(50) NOT NULL,
-    contacto_proveedor VARCHAR(50) NOT NULL,
     correo_proveedor VARCHAR(50) NOT NULL,
     telefono_proveedor VARCHAR(20) NOT NULL,
     direccion_proveedor VARCHAR(100) NOT NULL,
