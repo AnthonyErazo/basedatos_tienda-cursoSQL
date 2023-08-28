@@ -391,3 +391,63 @@ VALUES
     (13, 13, 5, '2023-08-15', 'Entrega de productos de compra casual'),
     (14, 14, 2, '2023-08-15', 'Entrega de productos de ropa cómoda'),
     (15, 15, 4, '2023-08-15', 'Entrega de productos para actividades activas');
+    
+    
+    
+-- Creacion de las vistas:
+-- 1. Vista para poder visualizar las ultimas entregas del mes que realizo cada repartidor
+CREATE OR REPLACE VIEW entregas_ultimo_mes AS (
+	SELECT r.dni_repartidor,concat(r.nombre_repartidor,' ',r.apellido_repartidor) as repartidor, e.fecha_entrega, e.detalle_entrega, e.id_venta
+	FROM entrega e
+	INNER JOIN repartidor r ON e.id_repartidor = r.id_repartidor
+	WHERE e.fecha_entrega BETWEEN DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND CURDATE()
+);
+-- 2. Compras realizadas el ultimo mes
+CREATE OR REPLACE VIEW compras_ultimo_mes AS (
+	SELECT c.fecha_compra,p.nombre_proveedor, p.ruc_proveedor , SUM(cp.cantidad_compra_producto) AS cantidad_productos,
+       c.total_compra
+	FROM compra c
+	INNER JOIN proveedor p ON c.id_proveedor=p.id_proveedor
+	INNER JOIN compra_producto cp ON c.id_compra = cp.id_compra
+	WHERE c.fecha_compra >= DATE_SUB(LAST_DAY(NOW()), INTERVAL 1 MONTH) + INTERVAL 1 DAY
+	  AND c.fecha_compra < LAST_DAY(NOW()) + INTERVAL 1 DAY
+	GROUP BY c.id_compra
+);
+-- 3. Stock de todos los productos, con informacion de la categoria y fecha de lanzamiento
+CREATE OR REPLACE VIEW info_producto AS(
+	SELECT stock_producto,nombre_producto,precio_producto,marca_producto,fecha_lanzamiento,nombre_categoria
+	FROM producto p
+	INNER JOIN categoria_producto cp ON p.id_producto=cp.id_producto
+	INNER JOIN categoria c ON cp.id_categoria=c.id_categoria
+);
+-- 4. Ventas realizadas el ultimo mes
+CREATE OR REPLACE VIEW ventas_ultimo_mes AS(
+	SELECT v.fecha_venta,CONCAT(c.nombre_cliente,' ',c.apellido_cliente) AS cliente, c.usuario_cliente, SUM(vp.cantidad_venta_producto) AS cantidad_productos,
+		   v.total_venta
+	FROM venta v
+	INNER JOIN cliente c ON v.id_cliente = c.id_cliente
+	INNER JOIN venta_producto vp ON v.id_venta = vp.id_venta
+	WHERE v.fecha_venta >= DATE_SUB(LAST_DAY(NOW()), INTERVAL 1 MONTH) + INTERVAL 1 DAY
+	  AND v.fecha_venta < LAST_DAY(NOW()) + INTERVAL 1 DAY
+	GROUP BY v.id_venta
+);
+-- 5. Productos con menos de 10 de stock, y los proveedores que venden dicho producto
+CREATE OR REPLACE VIEW stock_bajo_producto AS(
+	SELECT nombre_proveedor,stock_producto,nombre_producto,precio_producto,marca_producto,fecha_lanzamiento,nombre_categoria
+	FROM producto p
+	INNER JOIN compra_producto cop ON p.id_producto=cop.id_producto
+	INNER JOIN compra co ON cop.id_compra=co.id_compra
+	INNER JOIN proveedor pr ON co.id_proveedor=pr.id_proveedor
+	INNER JOIN categoria_producto cp ON p.id_producto=cp.id_producto
+	INNER JOIN categoria c ON cp.id_categoria=c.id_categoria
+	WHERE p.stock_producto<10
+    ORDER BY p.fecha_lanzamiento DESC
+);
+
+
+select*from entregas_ultimo_mes;
+select*from compras_ultimo_mes;
+select*from info_producto;
+select*from ventas_ultimo_mes;
+select*from stock_bajo_producto;
+
