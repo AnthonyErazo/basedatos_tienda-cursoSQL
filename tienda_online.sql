@@ -4,7 +4,7 @@ CREATE TABLE cliente(
     nombre_cliente VARCHAR(50) NOT NULL,
     apellido_cliente VARCHAR(50) NOT NULL,
     telefono_cliente VARCHAR(20) NOT NULL,
-    dni_cliente VARCHAR(20) NOT NULL,
+    dni_cliente VARCHAR(20) NOT NULL UNIQUE,
     direccion_cliente VARCHAR(100) NOT NULL,
     usuario_cliente VARCHAR(100) UNIQUE NOT NULL,
     contrasena_cliente VARCHAR(100) NOT NULL,
@@ -232,10 +232,10 @@ VALUES
     (4, 'Carlos', 'Martínez', '+2345678901', '2345678901', 'Calle 567, Ciudad D', 'carlos234', 'contrasena234', 'País D', 'carlos@example.com', '1992-08-10', 'Masculino'),
     (5, 'Laura', 'Hernández', '+8765432109', '8765432109', 'Avenida 678, Ciudad E', 'laura678', 'contrasena678', 'País E', 'laura@example.com', '1998-04-25', 'Femenino'),
     (6, 'Pablo', 'Gómez', '+3456789012', '3456789012', 'Plaza 890, Ciudad F', 'pablo890', 'contrasena890', 'País F', 'pablo@example.com', '1991-09-12', 'Masculino'),
-    (7, 'Sofía', 'Pérez', '+1234567890', '1234567890', 'Calle 123, Ciudad G', 'sofia123', 'contrasena124', 'País G', 'sofia@example.com', '1994-07-03', 'Femenino'),
-    (8, 'Diego', 'Díaz', '+9876543210', '9876543210', 'Avenida 456, Ciudad H', 'diego456', 'contrasena458', 'País H', 'diego@example.com', '1987-12-18', 'Masculino'),
-    (9, 'Valentina', 'Torres', '+4567890123', '4567890123', 'Plaza 789, Ciudad I', 'valentina789', 'contrasena781', 'País I', 'valentina@example.com', '1993-03-07', 'Femenino'),
-    (10, 'Andrés', 'Ruíz', '+2345678901', '2345678901', 'Calle 567, Ciudad J', 'andres234', 'contrasena236', 'País J', 'andres@example.com', '1997-10-22', 'Masculino');
+    (7, 'Sofía', 'Pérez', '+1234567890', '1234567896', 'Calle 123, Ciudad G', 'sofia123', 'contrasena124', 'País G', 'sofia@example.com', '1994-07-03', 'Femenino'),
+    (8, 'Diego', 'Díaz', '+9876543210', '9876543214', 'Avenida 456, Ciudad H', 'diego456', 'contrasena458', 'País H', 'diego@example.com', '1987-12-18', 'Masculino'),
+    (9, 'Valentina', 'Torres', '+4567890123', '4567890127', 'Plaza 789, Ciudad I', 'valentina789', 'contrasena781', 'País I', 'valentina@example.com', '1993-03-07', 'Femenino'),
+    (10, 'Andrés', 'Ruíz', '+2345678901', '2345678957', 'Calle 567, Ciudad J', 'andres234', 'contrasena236', 'País J', 'andres@example.com', '1997-10-22', 'Masculino');
 
 INSERT INTO repartidor (id_repartidor, nombre_repartidor, apellido_repartidor, usuario_repartidor, contrasena_repartidor, dni_repartidor, direccion_repartidor, telefono_repartidor, correo_repartidor, fecha_nacimiento_repartidor)
 VALUES
@@ -451,3 +451,81 @@ select*from info_producto;
 select*from ventas_ultimo_mes;
 select*from stock_bajo_producto;
 
+-- Funciones:
+-- 1. calcular el total de dinero y compras que un cliente tiene ingresando el dni
+USE `tienda_ropa`;
+DROP function IF EXISTS `total_compras_cliente`;
+
+USE `tienda_ropa`;
+DROP function IF EXISTS `tienda_ropa`.`total_compras_cliente`;
+;
+
+DELIMITER $$
+USE `tienda_ropa`$$
+CREATE DEFINER=`root`@`localhost` FUNCTION `total_compras_cliente`(dni_cliente VARCHAR(20)) RETURNS varchar(100) CHARSET utf8mb4
+    DETERMINISTIC
+BEGIN
+	DECLARE total DECIMAL(10,2);
+    DECLARE cantidad_comprada INT;
+    DECLARE result VARCHAR(100);
+    
+    DECLARE dni_exists INT;
+    SELECT id_cliente INTO dni_exists FROM cliente c WHERE c.dni_cliente = dni_cliente;
+    
+     IF dni_exists IS NULL THEN
+        SET result = 'DNI no existe en la base de datos.';
+    ELSE
+        SELECT SUM(total_venta), COUNT(id_venta) INTO total, cantidad_comprada
+        FROM cliente c
+        INNER JOIN venta v ON c.id_cliente = v.id_cliente
+        WHERE c.dni_cliente = dni_cliente;
+
+        SET result = CONCAT('Total: ', IFNULL(total, 0.00), ' - Cantidad Comprada: ', IFNULL(cantidad_comprada, 0));
+    END IF;
+
+    RETURN result; 
+END$$
+
+DELIMITER ;
+;
+SELECT total_compras_cliente('1234567890'); -- Ejemplo dni existente
+SELECT total_compras_cliente('123456789'); -- Ejemplo dni NO existente
+
+-- 2. calcular el monto total vendido y la cantidad en un rango de fecha
+USE `tienda_ropa`;
+DROP function IF EXISTS `total_compras_cliente`;
+
+USE `tienda_ropa`;
+DROP function IF EXISTS `tienda_ropa`.`total_compras_cliente`;
+;
+
+DELIMITER $$
+USE `tienda_ropa`$$
+CREATE DEFINER=`root`@`localhost` FUNCTION `total_compras_cliente`(dni_cliente VARCHAR(20)) RETURNS varchar(100) CHARSET utf8mb4
+    DETERMINISTIC
+BEGIN
+	DECLARE total DECIMAL(10,2);
+    DECLARE cantidad_comprada INT;
+    DECLARE result VARCHAR(100);
+    
+    DECLARE dni_exists INT;
+    SELECT id_cliente INTO dni_exists FROM cliente c WHERE c.dni_cliente = dni_cliente;
+    
+     IF dni_exists IS NULL THEN
+        SET result = 'DNI no existe en la base de datos.';
+    ELSE
+        SELECT SUM(total_venta), COUNT(id_venta) INTO total, cantidad_comprada
+        FROM cliente c
+        INNER JOIN venta v ON c.id_cliente = v.id_cliente
+        WHERE c.dni_cliente = dni_cliente;
+
+        SET result = CONCAT('Total: ', IFNULL(total, 0.00), ' - Cantidad Comprada: ', IFNULL(cantidad_comprada, 0)); 
+    END IF;
+
+    RETURN result; 
+END$$
+
+DELIMITER ;
+;
+SELECT total_ventas_fecha_determinada('2023-08-10','2023-08-31');
+SELECT total_ventas_fecha_determinada('2023-08-31','2023-08-10');
