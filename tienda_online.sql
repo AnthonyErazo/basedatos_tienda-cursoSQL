@@ -529,3 +529,69 @@ DELIMITER ;
 ;
 SELECT total_ventas_fecha_determinada('2023-08-10','2023-08-31');
 SELECT total_ventas_fecha_determinada('2023-08-31','2023-08-10');
+
+-- Stored Procedures:
+-- 1.Calcular ventas por dia:
+USE `tienda_ropa`;
+DROP procedure IF EXISTS `total_venta_dia`;
+
+DELIMITER $$
+USE `tienda_ropa`$$
+CREATE PROCEDURE `total_venta_dia` (
+	IN dia_venta VARCHAR(10))
+BEGIN
+	IF dia_venta='' THEN
+		SELECT 'ERROR: no se pudo crear el producto indicado';
+	ELSE
+		SELECT SUM(total_venta)
+		FROM venta v
+		WHERE v.fecha_venta = dia_venta;
+	END IF;
+END$$
+
+DELIMITER ;
+
+CALL total_venta_dia('2023-08-14');
+CALL total_venta_dia('2023-09-10');
+-- 2. Actualizar stock despues de realizar una venta:
+USE `tienda_ropa`;
+DROP procedure IF EXISTS `actualizar_stock_venta`;
+
+DELIMITER $$
+USE `tienda_ropa`$$
+CREATE PROCEDURE `actualizar_stock_venta`(
+	IN id_venta_realizada INT
+)
+BEGIN
+	DECLARE producto_id INT;
+	DECLARE cantidad INT;
+	DECLARE productos_cursor CURSOR FOR SELECT id_producto, cantidad_venta_producto FROM venta_producto WHERE id_venta = id_venta_realizada;
+
+	OPEN productos_cursor;
+
+	productos_loop: LOOP
+		FETCH productos_cursor INTO producto_id, cantidad;
+		IF producto_id IS NULL THEN
+			LEAVE productos_loop;
+		END IF;
+
+		UPDATE producto
+		SET stock_producto = stock_producto - cantidad
+		WHERE id_producto = producto_id;
+	END LOOP;
+
+	CLOSE productos_cursor;
+END$$
+
+DELIMITER ;
+
+SELECT*
+FROM venta v
+INNER JOIN venta_producto vp ON v.id_venta=vp.id_venta
+WHERE v.id_venta=1;
+
+SELECT stock_producto
+FROM producto
+WHERE id_producto=1;
+
+CALL actualizar_stock_venta(1);
