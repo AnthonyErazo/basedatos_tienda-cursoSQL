@@ -553,6 +553,9 @@ DELIMITER ;
 
 CALL total_venta_dia('2023-08-14');
 CALL total_venta_dia('2023-09-10');
+
+
+
 -- 2. Actualizar stock despues de realizar una venta:
 USE `tienda_ropa`;
 DROP procedure IF EXISTS `actualizar_stock_venta`;
@@ -595,3 +598,27 @@ FROM producto
 WHERE id_producto=1;
 
 CALL actualizar_stock_venta(1);
+
+
+
+-- 3. Ordenar tabla:
+USE `tienda_ropa`;
+DROP procedure IF EXISTS `actualizar_stock_venta`;
+
+DELIMITER $$
+USE `tienda_ropa`$$
+CREATE PROCEDURE `ordenar_tabla`(
+    IN nombre_tabla VARCHAR(255),
+    IN campo_ordenamiento VARCHAR(255),
+    IN orden VARCHAR(4)
+)
+BEGIN
+    SET @consulta = CONCAT('SELECT * FROM ', nombre_tabla, ' ORDER BY ', campo_ordenamiento, ' ', orden, ';');
+    PREPARE stmt FROM @consulta;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+END$$
+
+DELIMITER ;
+
+CALL ordenar_tabla('venta','total_venta','ASC');
