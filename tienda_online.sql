@@ -622,3 +622,151 @@ END$$
 DELIMITER ;
 
 CALL ordenar_tabla('venta','total_venta','ASC');
+
+-- Triggers:
+-- Tabla de registro para clientes
+CREATE TABLE clientes_log (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario VARCHAR(255) NOT NULL,
+    fecha DATE NOT NULL,
+    hora TIME NOT NULL,
+    accion VARCHAR(50) NOT NULL,
+    detalle TEXT
+);
+-- Tabla de registro para productos
+CREATE TABLE productos_log (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario VARCHAR(255) NOT NULL,
+    fecha DATE NOT NULL,
+    hora TIME NOT NULL,
+    accion VARCHAR(50) NOT NULL,
+    detalle TEXT
+);
+-- 1. Trigger para tabla clientes:
+/* se ejecutará antes y después de cada operación de inserción, 
+actualización o eliminación en la tabla clientes. Registrará el 
+usuario que realizó la acción, la fecha, la hora y el tipo de acción 
+(inserción, actualización o eliminación) junto con los detalles relevantes.*/
+DELIMITER $$
+
+-- Trigger AFTER para clientes
+CREATE TRIGGER after_clientes_insert
+AFTER INSERT ON cliente
+FOR EACH ROW
+BEGIN
+    INSERT INTO clientes_log (usuario, fecha, hora, accion, detalle)
+    VALUES (CURRENT_USER(), CURDATE(), CURTIME(), 'INSERCIÓN', CONCAT('Nuevo cliente insertado con ID ', NEW.id_cliente));
+END;
+
+$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+-- Trigger AFTER para clientes (después de una actualización)
+CREATE TRIGGER after_clientes_update
+AFTER UPDATE ON cliente
+FOR EACH ROW
+BEGIN
+    DECLARE cambio_detalle TEXT DEFAULT '';
+    IF OLD.nombre_cliente != NEW.nombre_cliente THEN
+        SET cambio_detalle = CONCAT(cambio_detalle,'(', OLD.nombre_cliente, ' -> ', NEW.nombre_cliente, ')');
+    END IF;
+    IF OLD.apellido_cliente != NEW.apellido_cliente THEN
+        SET cambio_detalle = CONCAT(cambio_detalle,'(', OLD.apellido_cliente, ' -> ',NEW.apellido_cliente, ')');
+    END IF;
+    IF OLD.telefono_cliente != NEW.telefono_cliente THEN
+        SET cambio_detalle = CONCAT(cambio_detalle,'(', OLD.telefono_cliente, ' -> ', NEW.telefono_cliente, ')');
+    END IF;
+    IF OLD.dni_cliente != NEW.dni_cliente THEN
+        SET cambio_detalle = CONCAT(cambio_detalle,'(', OLD.dni_cliente, ' -> ',NEW.dni_cliente, ')');
+    END IF;
+    IF OLD.direccion_cliente != NEW.direccion_cliente THEN
+        SET cambio_detalle = CONCAT(cambio_detalle,'(', OLD.direccion_cliente, ' -> ', NEW.direccion_cliente, ')');
+    END IF;
+    IF OLD.pais_cliente != NEW.pais_cliente THEN
+        SET cambio_detalle = CONCAT(cambio_detalle,'(', OLD.pais_cliente, ' -> ',NEW.pais_cliente, ')');
+    END IF;
+    IF OLD.correo_cliente != NEW.correo_cliente THEN
+        SET cambio_detalle = CONCAT(cambio_detalle,'(', OLD.correo_cliente, ' -> ',NEW.correo_cliente, ')');
+    END IF;
+    IF OLD.usuario_cliente != NEW.usuario_cliente THEN
+        SET cambio_detalle = CONCAT(cambio_detalle,'(', OLD.usuario_cliente, ' -> ',NEW.usuario_cliente, ')');
+    END IF;
+    
+    INSERT INTO clientes_log (usuario, fecha, hora, accion, detalle)
+    VALUES (CURRENT_USER(), CURDATE(), CURTIME(), 'ACTUALIZACIÓN', CONCAT('id:',NEW.id_cliente,' ',cambio_detalle));
+END;
+$$
+
+DELIMITER ;
+
+
+-- 2. Trrigger para la tabla productos:
+/*se ejecutará antes y después de cada operación de actualización en 
+la tabla productos. Registrará el usuario que realizó la acción, la fecha, 
+la hora y el tipo de acción (actualización) junto con los detalles relevantes.*/
+DELIMITER $$
+
+-- Trigger BEFORE para productos 
+CREATE TRIGGER before_productos_update
+BEFORE INSERT ON producto
+FOR EACH ROW
+BEGIN
+    INSERT INTO productos_log (usuario, fecha, hora, accion, detalle)
+    VALUES (CURRENT_USER(),CURDATE(), CURTIME(), 'INSERCION', CONCAT('Producto insertado de ID',NEW.id_producto));
+END;
+$$
+
+DELIMITER ;
+DELIMITER $$
+
+-- Trigger AFTER para productos (después de una actualización)
+CREATE TRIGGER after_productos_update
+AFTER UPDATE ON producto
+FOR EACH ROW
+BEGIN
+    DECLARE cambio_detalle TEXT DEFAULT '';
+    IF OLD.nombre_producto != NEW.nombre_producto THEN
+        SET cambio_detalle = CONCAT(cambio_detalle,'(', OLD.nombre_producto, ' -> ', NEW.nombre_producto, ')');
+    END IF;
+    IF OLD.precio_producto != NEW.precio_producto THEN
+        SET cambio_detalle = CONCAT(cambio_detalle,'(', OLD.precio_producto, ' -> ',NEW.precio_producto, ')');
+    END IF;
+    IF OLD.stock_producto != NEW.stock_producto THEN
+        SET cambio_detalle = CONCAT(cambio_detalle,'(', OLD.stock_producto, ' -> ', NEW.stock_producto, ')');
+    END IF;
+    IF OLD.marca_producto != NEW.marca_producto THEN
+        SET cambio_detalle = CONCAT(cambio_detalle,'(', OLD.marca_producto, ' -> ',NEW.marca_producto, ')');
+    END IF;
+    IF OLD.descuento_producto != NEW.descuento_producto THEN
+        SET cambio_detalle = CONCAT(cambio_detalle,'(', OLD.descuento_producto, ' -> ', NEW.descuento_producto, ')');
+    END IF;
+    IF OLD.fecha_lanzamiento != NEW.fecha_lanzamiento THEN
+        SET cambio_detalle = CONCAT(cambio_detalle,'(', OLD.fecha_lanzamiento, ' -> ',NEW.fecha_lanzamiento, ')');
+    END IF;
+    
+    INSERT INTO productos_log (usuario, fecha, hora, accion, detalle)
+    VALUES (CURRENT_USER(),CURDATE(), CURTIME(), 'ACTUALIZACIÓN', CONCAT('id:',NEW.id_producto,' ',cambio_detalle));
+END;
+$$
+
+DELIMITER ;
+
+
+INSERT INTO cliente (id_cliente, nombre_cliente, apellido_cliente, telefono_cliente, dni_cliente, direccion_cliente, usuario_cliente, contrasena_cliente, pais_cliente, correo_cliente, fecha_nacimiento_cliente, genero_cliente)
+VALUES
+    (11, 'Ana', 'García', '+1234567890', '1234567816', 'Calle 123, Ciudad A', 'ana126', 'contrasena120', 'País A', 'ana12@example.com', '1990-05-15', 'Femenino');
+Update cliente set nombre_cliente='Lara' where id_cliente=11;
+Update cliente set apellido_cliente='Rodriguez' where id_cliente=11;
+Update cliente set nombre_cliente='Laura',apellido_cliente='Martinez' where id_cliente=11;
+SELECT*FROM clientes_log;
+
+INSERT INTO producto (id_producto, nombre_producto, precio_producto, stock_producto, descripcion_producto, marca_producto, descuento_producto, fecha_lanzamiento) 
+VALUES 
+	(31, 'Pantalones largos', 50.56, 45, 'Pantalones cómodos.', 'SunStyle', 40.8, '2023-03-21');
+Update producto set nombre_producto='Pantalones' where id_producto=31;
+Update producto set precio_producto=50.80 where id_producto=31;
+Update producto set nombre_producto='shorts',precio_producto=30.80 where id_producto=31;
+SELECT*FROM productos_log;
