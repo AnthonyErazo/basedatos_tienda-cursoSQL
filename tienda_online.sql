@@ -493,40 +493,33 @@ SELECT total_compras_cliente('123456789'); -- Ejemplo dni NO existente
 
 -- 2. calcular el monto total vendido y la cantidad en un rango de fecha
 USE `tienda_ropa`;
-DROP function IF EXISTS `total_compras_cliente`;
+DROP function IF EXISTS `total_ventas_fecha_determinada`;
 
 USE `tienda_ropa`;
-DROP function IF EXISTS `tienda_ropa`.`total_compras_cliente`;
+DROP function IF EXISTS `tienda_ropa`.`total_ventas_fecha_determinada`;
 ;
 
 DELIMITER $$
 USE `tienda_ropa`$$
-CREATE DEFINER=`root`@`localhost` FUNCTION `total_compras_cliente`(dni_cliente VARCHAR(20)) RETURNS varchar(100) CHARSET utf8mb4
+CREATE DEFINER=`root`@`localhost` FUNCTION `total_ventas_fecha_determinada`(fecha_inicio DATE, fecha_fin DATE) RETURNS VARCHAR(100)
     DETERMINISTIC
 BEGIN
 	DECLARE total DECIMAL(10,2);
-    DECLARE cantidad_comprada INT;
-    DECLARE result VARCHAR(100);
-    
-    DECLARE dni_exists INT;
-    SELECT id_cliente INTO dni_exists FROM cliente c WHERE c.dni_cliente = dni_cliente;
-    
-     IF dni_exists IS NULL THEN
-        SET result = 'DNI no existe en la base de datos.';
-    ELSE
-        SELECT SUM(total_venta), COUNT(id_venta) INTO total, cantidad_comprada
-        FROM cliente c
-        INNER JOIN venta v ON c.id_cliente = v.id_cliente
-        WHERE c.dni_cliente = dni_cliente;
-
-        SET result = CONCAT('Total: ', IFNULL(total, 0.00), ' - Cantidad Comprada: ', IFNULL(cantidad_comprada, 0)); 
-    END IF;
-
-    RETURN result; 
+    DECLARE cantidad INT;
+    IF fecha_inicio>fecha_fin THEN
+		SELECT COUNT(id_venta),SUM(total_venta) INTO cantidad,total
+		FROM venta
+		WHERE fecha_venta BETWEEN fecha_fin AND fecha_inicio;
+	ELSE
+		SELECT COUNT(id_venta),SUM(total_venta) INTO cantidad,total
+		FROM venta
+		WHERE fecha_venta BETWEEN fecha_inicio AND fecha_fin;
+	END IF;
+    RETURN CONCAT('MONTO TOTAL: ',IFNULL(total, 0.00),'-CANTIDAD TOTAL: ',IFNULL(cantidad, 0.00));
 END$$
 
 DELIMITER ;
-;
+
 SELECT total_ventas_fecha_determinada('2023-08-10','2023-08-31');
 SELECT total_ventas_fecha_determinada('2023-08-31','2023-08-10');
 
