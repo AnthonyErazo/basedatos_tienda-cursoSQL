@@ -763,3 +763,22 @@ Update producto set nombre_producto='Pantalones' where id_producto=31;
 Update producto set precio_producto=50.80 where id_producto=31;
 Update producto set nombre_producto='shorts',precio_producto=30.80 where id_producto=31;
 SELECT*FROM productos_log;
+
+#Informe 1: Informe de ventas por cliente
+SELECT c.nombre_cliente, COUNT(v.id_venta) AS total_ventas, SUM(v.total_venta) AS monto_total_gastado
+FROM cliente c
+LEFT JOIN venta v ON c.id_cliente = v.id_cliente
+GROUP BY c.nombre_cliente;
+
+#Informe 2: Top 5 de productos más vendidos
+SELECT p.nombre_producto, SUM(vp.cantidad_venta_producto) AS cantidad_total_vendida
+FROM producto p
+LEFT JOIN venta_producto vp ON p.id_producto = vp.id_producto
+GROUP BY p.nombre_producto
+ORDER BY cantidad_total_vendida DESC
+LIMIT 5;
+
+
+
+
+
